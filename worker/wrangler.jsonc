@@ -1,0 +1,16 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "prus-validation-github-writer",
+  "main": "src/index.js",
+  "compatibility_date": "2026-07-17",
+  "vars": {
+    "ALLOWED_ORIGINS": "https://daakrofi.github.io,http://127.0.0.1:8787,http://localhost:8787",
+    "GITHUB_OWNER": "daakrofi",
+    "GITHUB_REPO": "prus-human-validation-responses",
+    "GITHUB_BRANCH": "main"
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}

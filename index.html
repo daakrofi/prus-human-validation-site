@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PRUS Human Validation</title>
+    <link rel="stylesheet" href="styles.css?v=20260717-post-v4" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Human validation exercise</p>
+          <h1>PRUS Post Coding</h1>
+        </div>
+        <div class="status-pill" id="status-pill">Not started</div>
+      </header>
+
+      <section class="panel" id="home-screen">
+        <div class="callout" id="validation-pause-notice" hidden>
+          <h2>Validation temporarily paused</h2>
+          <p>
+            The validation sample is being quality-checked and rebuilt. New and resumed sessions
+            will be available after the corrected sample has been published.
+          </p>
+        </div>
+        <div class="grid two">
+          <div>
+            <h2>Start a New Session</h2>
+            <p class="muted">
+              Create a validation record before beginning the post-coding exercise. Progress
+              is retained in this browser and securely checkpointed to the research repository.
+            </p>
+            <form id="new-form" class="form-stack">
+              <label>
+                Name
+                <input type="text" name="name" autocomplete="name" required />
+              </label>
+              <label>
+                Email
+                <input type="email" name="email" autocomplete="email" required />
+              </label>
+              <label>
+                Phone number
+                <input type="tel" name="phone" autocomplete="tel" required />
+              </label>
+              <button type="submit" class="primary">New</button>
+            </form>
+          </div>
+          <div>
+            <h2>Resume a Session</h2>
+            <p class="muted">
+              Resume is available for records created in this browser. Enter the same email address
+              used when the exercise was started.
+            </p>
+            <form id="resume-form" class="form-stack">
+              <label>
+                Email
+                <input type="email" name="email" autocomplete="email" required />
+              </label>
+              <button type="submit" class="secondary">Resume</button>
+              <p class="error" id="resume-error" hidden>No local record exists for that email.</p>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="instructions-screen" hidden>
+        <div class="section-head">
+          <div class="instructions-lead">
+            <h2>Instructions</h2>
+            <p>
+              You are about to be presented with a series of 500 Steam discussion posts published
+              before the named game was released. Each item contains the post title and the captured
+              post text used in the study. Your task is to decide whether each post contains
+              <strong>PRUS</strong>.
+            </p>
+          </div>
+          <button type="button" class="secondary" id="back-home">Back</button>
+        </div>
+
+        <div class="definition-block">
+          <h3>What is PRUS?</h3>
+          <p>
+            Pre-Release User Speculation (PRUS) is the user-to-user expression and exchange of
+            low-commitment conjectural propositions about an unreleased product, produced under
+            conditions, and in service of making sense, of incomplete product information.
+          </p>
+        </div>
+
+        <div class="definition-block compact">
+          <h3>Simply put:</h3>
+          <p>
+            PRUS occurs when users discuss uncertain ideas about an unreleased game: what it may
+            contain, how it may perform, what might be required to access it, or what using it might
+            be like. These ideas do not have to be firm predictions. PRUS can also appear through
+            questions, interpretations, concerns, hopes, suggestions, and discussion of different
+            possibilities.
+          </p>
+        </div>
+
+        <div class="callout">
+          <h3>How to Code Each Post:</h3>
+          <p>
+            Read the title and the full displayed post as one connected contribution to the
+            discussion. Select <strong>PRUS</strong> when any part of the post introduces or explores
+            an uncertain possibility about the game or the experience surrounding it. This may be
+            expressed in one sentence or across several connected sentences. Select
+            <strong>Not PRUS</strong> only when the post contains no uncertain possibility about the
+            product or product experience. This includes posts that are entirely factual, provide
+            resolved technical information, express ordinary excitement or criticism, or discuss
+            something unrelated to the game. The entire post does not have to be speculative. One
+            relevant sentence, passage, or combination of statements is enough. For a PRUS post,
+            select every product topic domain that applies to the relevant passage or passages.
+          </p>
+        </div>
+
+        <section class="boundary-guide" aria-labelledby="question-guide-heading">
+          <div class="boundary-guide-head">
+            <h3 id="question-guide-heading">Questions, requests, hopes, and suggestions</h3>
+            <p>
+              These forms of discussion can be PRUS, but they are not automatically PRUS. Read the
+              question together with the title and surrounding post.
+            </p>
+          </div>
+          <div class="boundary-row">
+            <p class="boundary-label prus-label">PRUS</p>
+            <div>
+              <p><strong>A question that raises a possible feature or product state.</strong></p>
+              <p class="example">“Do you think the full game will have more maps?”</p>
+            </div>
+          </div>
+          <div class="boundary-row">
+            <p class="boundary-label prus-label">PRUS</p>
+            <div>
+              <p><strong>A hope that introduces a possible product feature.</strong></p>
+              <p class="example">“I hope they add split-screen before release.”</p>
+            </div>
+          </div>
+          <div class="boundary-row">
+            <p class="boundary-label prus-label">PRUS</p>
+            <div>
+              <p><strong>A suggestion that raises an unresolved product concern.</strong></p>
+              <p class="example">“They should improve the servers before launch because they may struggle with the player count.”</p>
+            </div>
+          </div>
+          <div class="boundary-row">
+            <p class="boundary-label not-prus-label">Not PRUS</p>
+            <div>
+              <p><strong>A question seeking only an immediate technical solution.</strong></p>
+              <p class="example">“My controller isn’t working. Which setting fixes it?”</p>
+            </div>
+          </div>
+          <div class="boundary-row">
+            <p class="boundary-label prus-label">PRUS</p>
+            <div>
+              <p><strong>A current problem used to raise a wider product concern.</strong></p>
+              <p class="example">“Controller support is still broken this close to launch. Is the full game going to support controllers properly?”</p>
+            </div>
+          </div>
+          <div class="boundary-row">
+            <p class="boundary-label not-prus-label">Not PRUS</p>
+            <div>
+              <p><strong>A request for a currently knowable fact.</strong></p>
+              <p class="example">“Which edition includes early access?”</p>
+            </div>
+          </div>
+          <div class="boundary-row">
+            <p class="boundary-label not-prus-label">Not PRUS</p>
+            <div>
+              <p><strong>A factual instruction rather than speculation.</strong></p>
+              <p class="example">“Press F5 to open the settings menu.”</p>
+            </div>
+          </div>
+          <div class="boundary-guide-note">
+            <p>
+              Select <strong>PRUS</strong> when a question raises or implies uncertainty about what
+              the game contains, how it performs, what it requires, or what the wider product
+              experience may be like. The question does not need to mention the future directly.
+              Select <strong>Not PRUS</strong> when it only asks for a currently available fact,
+              gameplay instruction, or solution to an immediate technical problem. A useful check
+              is: would a straightforward factual answer or troubleshooting solution fully satisfy
+              the post? If yes, it is probably Not PRUS. If the question also explores a wider
+              uncertain possibility about the product, it may be PRUS.
+            </p>
+          </div>
+        </section>
+
+        <section class="boundary-guide" aria-labelledby="prerelease-build-guide-heading">
+          <div class="boundary-guide-head">
+            <h3 id="prerelease-build-guide-heading">Demos, betas, and Early Access</h3>
+            <p>
+              Discussion of a pre-release version can be PRUS. Users do not always state directly
+              that a current issue may continue after release. Concern about an unresolved
+              pre-release experience may itself suggest uncertainty about the game or its release state.
+            </p>
+          </div>
+          <div class="boundary-row">
+            <p class="boundary-label prus-label">PRUS</p>
+            <div>
+              <p><strong>An unresolved concern about a pre-release experience.</strong></p>
+              <p class="example">“The demo keeps crashing, which worries me.”</p>
+            </div>
+          </div>
+          <div class="boundary-row">
+            <p class="boundary-label prus-label">PRUS</p>
+            <div>
+              <p><strong>A current experience that raises a possibility about the wider game.</strong></p>
+              <p class="example">“The combat feels limited in the demo. Is this all there will be?”</p>
+            </div>
+          </div>
+          <div class="boundary-row">
+            <p class="boundary-label prus-label">PRUS</p>
+            <div>
+              <p><strong>A concern about how a pre-release problem may develop.</strong></p>
+              <p class="example">“The beta performance is rough. Hopefully they can fix it before launch.”</p>
+            </div>
+          </div>
+          <div class="boundary-row">
+            <p class="boundary-label not-prus-label">Not PRUS</p>
+            <div>
+              <p><strong>A resolved technical problem.</strong></p>
+              <p class="example">“The demo crashed because my graphics driver was outdated. Updating it fixed the problem.”</p>
+            </div>
+          </div>
+          <div class="boundary-guide-note">
+            <p>
+              A current problem does not automatically count as PRUS. It should involve an unresolved
+              concern, interpretation, possibility, or question about the product or product experience.
+            </p>
+          </div>
+        </section>
+
+        <div class="domain-grid">
+          <article>
+            <h3>Content</h3>
+            <p>Speculation about story, mechanics, characters, modes, maps, features, monetization, or gameplay experience.</p>
+            <p class="example">Example: "The demo probably hints at a bigger crafting system."</p>
+          </article>
+          <article>
+            <h3>Performance</h3>
+            <p>Speculation about technical quality, optimization, FPS, bugs, crashes, servers, or launch stability.</p>
+            <p class="example">Example: "It might run badly on older GPUs at launch."</p>
+          </article>
+          <article>
+            <h3>Requirements / Access</h3>
+            <p>Speculation about platform access, hardware specs, storage, regions, editions, release timing, or play conditions.</p>
+            <p class="example">Example: "The full version may need more RAM than the demo."</p>
+          </article>
+        </div>
+
+        <button type="button" class="primary wide" id="start-exercise">Start Coding</button>
+      </section>
+
+      <section class="panel exercise" id="exercise-screen" hidden>
+        <div class="progress-row">
+          <div>
+            <p class="eyebrow">Post <span id="position-label">1</span> of <span id="total-label">500</span></p>
+            <h2 id="game-label">Game</h2>
+            <p class="muted" id="release-timing-label"></p>
+          </div>
+          <div class="progress-meter" aria-label="Progress">
+            <div id="progress-bar"></div>
+          </div>
+        </div>
+
+        <div class="sticky-definition">
+          <strong>PRUS check:</strong>
+          Does any sentence or connected passage introduce or explore an uncertain possibility
+          about the game or product experience? Questions count when they raise a wider product
+          possibility; questions seeking only a current fact or fix do not. Read the title and post
+          together; one relevant passage is enough.
+        </div>
+
+        <article class="post-card">
+          <p class="eyebrow">Steam discussion post</p>
+          <h3 id="post-title"></h3>
+          <p id="post-body"></p>
+        </article>
+
+        <div class="decision-row" id="binary-decision">
+          <button type="button" class="primary decision" data-prus="true">PRUS</button>
+          <button type="button" class="secondary decision" data-prus="false">Not PRUS</button>
+        </div>
+
+        <div class="domain-choice" id="domain-choice" hidden>
+          <h3>Select every applicable product topic domain</h3>
+          <p class="muted">At least one domain is required before continuing.</p>
+          <div class="decision-row">
+            <button type="button" class="domain-button" data-domain="content" aria-pressed="false">Content</button>
+            <button type="button" class="domain-button" data-domain="performance" aria-pressed="false">Performance</button>
+            <button type="button" class="domain-button" data-domain="requirements_access" aria-pressed="false">Requirements / Access</button>
+          </div>
+          <button type="button" class="primary domain-continue" id="confirm-domains" disabled>Continue</button>
+          <button type="button" class="link-button" id="change-to-not-prus">Change to Not PRUS</button>
+        </div>
+
+        <div class="nav-row">
+          <button type="button" class="secondary" id="previous">Previous</button>
+          <button type="button" class="secondary" id="save-exit">Save and Exit</button>
+        </div>
+        <p class="save-message" id="exercise-save-message" aria-live="polite"></p>
+      </section>
+
+      <section class="panel" id="finished-screen" hidden>
+        <p class="eyebrow">Complete</p>
+        <h2>Validation Session Complete</h2>
+        <p class="save-message" id="remote-save-message" aria-live="polite">
+          Saving the completed responses to the research repository…
+        </p>
+        <button type="button" class="secondary" id="retry-remote-save" hidden>Retry Secure Save</button>
+        <p class="muted">CSV and JSON downloads remain available as personal backup copies.</p>
+        <div class="decision-row">
+          <button type="button" class="primary" id="download-csv">Download CSV</button>
+          <button type="button" class="secondary" id="download-json">Download JSON</button>
+        </div>
+        <button type="button" class="link-button" id="return-home">Return to Start</button>
+      </section>
+    </main>
+
+    <script src="config.js?v=20260717-post-v4"></script>
+    <script src="app.js?v=20260717-post-v6"></script>
+  </body>
+</html>

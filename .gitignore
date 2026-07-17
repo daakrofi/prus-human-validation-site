@@ -1,0 +1,10 @@
+.DS_Store
+*.log
+validation_exports/
+data/sample_summary.json
+scripts/
+worker/node_modules/
+worker/.wrangler/
+scripts/__pycache__/
+tmp/
+output/playwright/
