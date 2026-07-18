@@ -47,6 +47,20 @@ function componentPayload() {
   return payload;
 }
 
+function componentV2Payload() {
+  const payload = componentPayload();
+  payload.sample_metadata = {
+    sample_version: "2026-07-18-component-first-v2",
+    unit_of_validation: "topic_root_post",
+    annotation_scheme: "component_first_cue_proposition_domain_none_v2",
+    target_total: 500
+  };
+  payload.session.responses.forEach((response) => {
+    response.no_qualifying_domain = null;
+  });
+  return payload;
+}
+
 test("validates the expected sample", () => {
   const result = validatePayload(validPayload());
   assert.deepEqual(result, {
@@ -112,6 +126,40 @@ test("a completed component-first session requires a domain after both positive 
   payload.session.responses[0].uncertainty_cue_present = true;
   payload.session.responses[0].uncertain_proposition_present = true;
   assert.throws(() => validatePayload(payload), /must answer every post/);
+});
+
+test("component-first v2 records no qualifying domain as a completed non-PRUS decision", async () => {
+  const payload = componentV2Payload();
+  payload.session.responses[0].uncertainty_cue_present = true;
+  payload.session.responses[0].uncertain_proposition_present = true;
+  payload.session.responses[0].no_qualifying_domain = true;
+  payload.session.responses[0].derived_PRUS = true;
+  const result = validatePayload(payload);
+  assert.equal(result.answered, 1);
+  assert.equal(result.responseNamespace, "post-validation-component-first-v2");
+  assert.equal(payload.session.responses[0].derived_PRUS, false);
+  const path = await participantPath(result.email, result.responseNamespace);
+  assert.match(path, /^responses\/post-validation-component-first-v2\/[0-9a-f]{2}\/[0-9a-f]{64}\.json$/);
+});
+
+test("component-first v2 derives PRUS when a qualifying domain is selected", () => {
+  const payload = componentV2Payload();
+  payload.session.responses[0].uncertainty_cue_present = true;
+  payload.session.responses[0].uncertain_proposition_present = true;
+  payload.session.responses[0].human_domains = ["requirements_access"];
+  payload.session.responses[0].no_qualifying_domain = false;
+  const result = validatePayload(payload);
+  assert.equal(result.answered, 1);
+  assert.equal(payload.session.responses[0].derived_PRUS, true);
+});
+
+test("component-first v2 rejects a qualifying domain combined with no qualifying domain", () => {
+  const payload = componentV2Payload();
+  payload.session.responses[0].uncertainty_cue_present = true;
+  payload.session.responses[0].uncertain_proposition_present = true;
+  payload.session.responses[0].human_domains = ["content"];
+  payload.session.responses[0].no_qualifying_domain = true;
+  assert.throws(() => validatePayload(payload), /cannot be combined/);
 });
 
 test("canonicalizes a stale session unit when post-level sample metadata and records are valid", () => {

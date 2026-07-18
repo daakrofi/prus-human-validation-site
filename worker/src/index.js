@@ -25,6 +25,14 @@ const SAMPLE_PROFILES = new Map([
       responseNamespace: "post-validation-component-first-v1",
       responseMode: "component_first"
     }
+  ],
+  [
+    "2026-07-18-component-first-v2",
+    {
+      validationUnit: "topic_root_post",
+      responseNamespace: "post-validation-component-first-v2",
+      responseMode: "component_first_domain_none"
+    }
   ]
 ]);
 const ALLOWED_DOMAINS = new Set(["content", "performance", "requirements_access"]);
@@ -138,7 +146,7 @@ export function validatePayload(payload) {
       throw new HttpError(400, "Invalid human product topic domains");
     }
 
-    if (sampleProfile.responseMode === "component_first") {
+    if (["component_first", "component_first_domain_none"].includes(sampleProfile.responseMode)) {
       if (![null, true, false].includes(response.uncertainty_cue_present)) {
         throw new HttpError(400, "Invalid uncertainty cue value");
       }
@@ -148,18 +156,30 @@ export function validatePayload(payload) {
 
       const cue = response.uncertainty_cue_present;
       const proposition = response.uncertain_proposition_present;
+      const permitsNoDomain = sampleProfile.responseMode === "component_first_domain_none";
+      if (permitsNoDomain && ![null, true, false].includes(response.no_qualifying_domain)) {
+        throw new HttpError(400, "Invalid no-qualifying-domain value");
+      }
+      const noQualifyingDomain = permitsNoDomain && response.no_qualifying_domain === true;
       if (cue !== true && proposition !== null) {
         throw new HttpError(400, "A proposition decision requires an uncertainty cue");
       }
-      if ((cue !== true || proposition !== true) && domains.length > 0) {
+      if ((cue !== true || proposition !== true) && (domains.length > 0 || noQualifyingDomain)) {
         throw new HttpError(400, "Product topic domains require both uncertainty and an uncertain proposition");
+      }
+      if (noQualifyingDomain && domains.length > 0) {
+        throw new HttpError(400, "No qualifying domain cannot be combined with product topic domains");
       }
 
       const isAnswered = cue === false
         || (cue === true && proposition === false)
-        || (cue === true && proposition === true && domains.length > 0);
+        || (
+          cue === true
+          && proposition === true
+          && (domains.length > 0 || noQualifyingDomain)
+        );
       response.derived_PRUS = isAnswered
-        ? cue === true && proposition === true && domains.length > 0
+        ? cue === true && proposition === true && domains.length > 0 && !noQualifyingDomain
         : null;
       if (isAnswered) answered += 1;
     } else {
@@ -227,14 +247,18 @@ function savedProgress(record) {
   const sampleVersion = String(record?.sample_metadata?.sample_version || "");
   const responseMode = SAMPLE_PROFILES.get(sampleVersion)?.responseMode || "direct_prus";
   const answered = responses.filter((response) => {
-    if (responseMode === "component_first") {
+    if (["component_first", "component_first_domain_none"].includes(responseMode)) {
+      const noQualifyingDomain = responseMode === "component_first_domain_none"
+        && response?.no_qualifying_domain === true;
       return response?.uncertainty_cue_present === false
         || (response?.uncertainty_cue_present === true && response?.uncertain_proposition_present === false)
         || (
           response?.uncertainty_cue_present === true
           && response?.uncertain_proposition_present === true
-          && Array.isArray(response?.human_domains)
-          && response.human_domains.length > 0
+          && (
+            (Array.isArray(response?.human_domains) && response.human_domains.length > 0)
+            || noQualifyingDomain
+          )
         );
     }
     return response?.human_PRUS === false
