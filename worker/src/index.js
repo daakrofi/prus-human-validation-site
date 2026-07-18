@@ -6,14 +6,24 @@ const SAMPLE_PROFILES = new Map([
     "2026-07-17-post-level-v1",
     {
       validationUnit: "topic_root_post",
-      responseNamespace: DEFAULT_RESPONSE_NAMESPACE
+      responseNamespace: DEFAULT_RESPONSE_NAMESPACE,
+      responseMode: "direct_prus"
     }
   ],
   [
     "2026-07-18-synthetic-rubric-hybrid-v1",
     {
       validationUnit: "topic_root_post",
-      responseNamespace: "post-validation-synthetic-rubric-hybrid-v1"
+      responseNamespace: "post-validation-synthetic-rubric-hybrid-v1",
+      responseMode: "direct_prus"
+    }
+  ],
+  [
+    "2026-07-18-component-first-v1",
+    {
+      validationUnit: "topic_root_post",
+      responseNamespace: "post-validation-component-first-v1",
+      responseMode: "component_first"
     }
   ]
 ]);
@@ -115,9 +125,6 @@ export function validatePayload(payload) {
     if (!response || typeof response !== "object") {
       throw new HttpError(400, "Invalid response record");
     }
-    if (![null, true, false].includes(response.human_PRUS)) {
-      throw new HttpError(400, "Invalid human PRUS value");
-    }
     const postId = requiredString(response.post_id, "post id", 300);
     if (postIds.has(postId)) {
       throw new HttpError(400, "Post IDs must be unique");
@@ -130,16 +137,49 @@ export function validatePayload(payload) {
     if (domains.length !== response.human_domains.length || domains.some((domain) => !ALLOWED_DOMAINS.has(domain))) {
       throw new HttpError(400, "Invalid human product topic domains");
     }
-    if (response.human_PRUS === false && domains.length > 0) {
-      throw new HttpError(400, "A Not PRUS response cannot have product topic domains");
-    }
-    if (response.human_PRUS === false || (response.human_PRUS === true && domains.length > 0)) {
-      answered += 1;
+
+    if (sampleProfile.responseMode === "component_first") {
+      if (![null, true, false].includes(response.uncertainty_cue_present)) {
+        throw new HttpError(400, "Invalid uncertainty cue value");
+      }
+      if (![null, true, false].includes(response.uncertain_proposition_present)) {
+        throw new HttpError(400, "Invalid uncertain proposition value");
+      }
+
+      const cue = response.uncertainty_cue_present;
+      const proposition = response.uncertain_proposition_present;
+      if (cue !== true && proposition !== null) {
+        throw new HttpError(400, "A proposition decision requires an uncertainty cue");
+      }
+      if ((cue !== true || proposition !== true) && domains.length > 0) {
+        throw new HttpError(400, "Product topic domains require both uncertainty and an uncertain proposition");
+      }
+
+      const isAnswered = cue === false
+        || (cue === true && proposition === false)
+        || (cue === true && proposition === true && domains.length > 0);
+      response.derived_PRUS = isAnswered
+        ? cue === true && proposition === true && domains.length > 0
+        : null;
+      if (isAnswered) answered += 1;
+    } else {
+      if (![null, true, false].includes(response.human_PRUS)) {
+        throw new HttpError(400, "Invalid human PRUS value");
+      }
+      if (response.human_PRUS === false && domains.length > 0) {
+        throw new HttpError(400, "A Not PRUS response cannot have product topic domains");
+      }
+      if (response.human_PRUS === false || (response.human_PRUS === true && domains.length > 0)) {
+        answered += 1;
+      }
     }
   }
 
   if (session.completed_at) {
-    if (session.responses.some((response) => response.human_PRUS === true && response.human_domains.length === 0)) {
+    if (
+      sampleProfile.responseMode === "direct_prus"
+      && session.responses.some((response) => response.human_PRUS === true && response.human_domains.length === 0)
+    ) {
       throw new HttpError(400, "Every completed PRUS response requires at least one product topic domain");
     }
     if (answered !== EXPECTED_SAMPLE_SIZE) {
@@ -184,10 +224,22 @@ function base64DecodeUtf8(value) {
 
 function savedProgress(record) {
   const responses = Array.isArray(record?.session?.responses) ? record.session.responses : [];
-  const answered = responses.filter(
-    (response) => response?.human_PRUS === false
-      || (response?.human_PRUS === true && Array.isArray(response?.human_domains) && response.human_domains.length > 0)
-  ).length;
+  const sampleVersion = String(record?.sample_metadata?.sample_version || "");
+  const responseMode = SAMPLE_PROFILES.get(sampleVersion)?.responseMode || "direct_prus";
+  const answered = responses.filter((response) => {
+    if (responseMode === "component_first") {
+      return response?.uncertainty_cue_present === false
+        || (response?.uncertainty_cue_present === true && response?.uncertain_proposition_present === false)
+        || (
+          response?.uncertainty_cue_present === true
+          && response?.uncertain_proposition_present === true
+          && Array.isArray(response?.human_domains)
+          && response.human_domains.length > 0
+        );
+    }
+    return response?.human_PRUS === false
+      || (response?.human_PRUS === true && Array.isArray(response?.human_domains) && response.human_domains.length > 0);
+  }).length;
   const updatedAt = Date.parse(record?.session?.updated_at || record?.received_at || "") || 0;
   return {
     answered,
