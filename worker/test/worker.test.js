@@ -30,7 +30,22 @@ function validPayload() {
 
 test("validates the expected sample", () => {
   const result = validatePayload(validPayload());
-  assert.deepEqual(result, { email: "test@example.com", answered: 0, completed: false });
+  assert.deepEqual(result, {
+    email: "test@example.com",
+    answered: 0,
+    completed: false,
+    sampleVersion: "2026-07-17-post-level-v1",
+    responseNamespace: "post-validation-v1"
+  });
+});
+
+test("accepts the alternative hybrid codebook sample in an isolated response namespace", async () => {
+  const payload = validPayload();
+  payload.sample_metadata.sample_version = "2026-07-18-synthetic-rubric-hybrid-v1";
+  const result = validatePayload(payload);
+  assert.equal(result.responseNamespace, "post-validation-synthetic-rubric-hybrid-v1");
+  const path = await participantPath(result.email, result.responseNamespace);
+  assert.match(path, /^responses\/post-validation-synthetic-rubric-hybrid-v1\/[0-9a-f]{2}\/[0-9a-f]{64}\.json$/);
 });
 
 test("canonicalizes a stale session unit when post-level sample metadata and records are valid", () => {

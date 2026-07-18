@@ -1,7 +1,22 @@
 const MAX_BODY_BYTES = 2_000_000;
 const EXPECTED_SAMPLE_SIZE = 500;
-const EXPECTED_SAMPLE_VERSION = "2026-07-17-post-level-v1";
-const EXPECTED_VALIDATION_UNIT = "topic_root_post";
+const DEFAULT_RESPONSE_NAMESPACE = "post-validation-v1";
+const SAMPLE_PROFILES = new Map([
+  [
+    "2026-07-17-post-level-v1",
+    {
+      validationUnit: "topic_root_post",
+      responseNamespace: DEFAULT_RESPONSE_NAMESPACE
+    }
+  ],
+  [
+    "2026-07-18-synthetic-rubric-hybrid-v1",
+    {
+      validationUnit: "topic_root_post",
+      responseNamespace: "post-validation-synthetic-rubric-hybrid-v1"
+    }
+  ]
+]);
 const ALLOWED_DOMAINS = new Set(["content", "performance", "requirements_access"]);
 const MAX_GITHUB_SAVE_ATTEMPTS = 8;
 const RETRYABLE_GITHUB_STATUSES = new Set([409, 422, 429, 500, 502, 503, 504]);
@@ -79,9 +94,11 @@ export function validatePayload(payload) {
   if (!Array.isArray(session.responses) || session.responses.length !== EXPECTED_SAMPLE_SIZE) {
     throw new HttpError(400, `Session must contain ${EXPECTED_SAMPLE_SIZE} responses`);
   }
+  const sampleVersion = String(metadata.sample_version || "");
+  const sampleProfile = SAMPLE_PROFILES.get(sampleVersion);
   if (
-    String(metadata.sample_version || "") !== EXPECTED_SAMPLE_VERSION ||
-    String(metadata.unit_of_validation || "") !== EXPECTED_VALIDATION_UNIT
+    !sampleProfile ||
+    String(metadata.unit_of_validation || "") !== sampleProfile.validationUnit
   ) {
     throw new HttpError(400, "Unexpected validation sample metadata");
   }
@@ -90,7 +107,7 @@ export function validatePayload(payload) {
   // authoritative unit checks. The session copy is redundant and may be stale
   // after a deployment or altered by browser instrumentation. Canonicalize it
   // after validating the authoritative fields instead of rejecting valid work.
-  session.validation_unit = EXPECTED_VALIDATION_UNIT;
+  session.validation_unit = sampleProfile.validationUnit;
 
   let answered = 0;
   const postIds = new Set();
@@ -130,7 +147,13 @@ export function validatePayload(payload) {
     }
   }
 
-  return { email, answered, completed: Boolean(session.completed_at) };
+  return {
+    email,
+    answered,
+    completed: Boolean(session.completed_at),
+    sampleVersion,
+    responseNamespace: sampleProfile.responseNamespace
+  };
 }
 
 async function sha256(value) {
@@ -138,9 +161,9 @@ async function sha256(value) {
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-export async function participantPath(email) {
+export async function participantPath(email, responseNamespace = DEFAULT_RESPONSE_NAMESPACE) {
   const hash = await sha256(email.trim().toLowerCase());
-  return `responses/post-validation-v1/${hash.slice(0, 2)}/${hash}.json`;
+  return `responses/${responseNamespace}/${hash.slice(0, 2)}/${hash}.json`;
 }
 
 function base64EncodeUtf8(value) {
@@ -281,7 +304,7 @@ async function handlePost(request, env) {
     throw new HttpError(400, "Request body must be valid JSON");
   }
   const summary = validatePayload(payload);
-  const path = await participantPath(summary.email);
+  const path = await participantPath(summary.email, summary.responseNamespace);
   const record = {
     schema_version: 2,
     received_at: new Date().toISOString(),
