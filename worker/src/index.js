@@ -33,6 +33,14 @@ const SAMPLE_PROFILES = new Map([
       responseNamespace: "post-validation-component-first-v2",
       responseMode: "component_first_domain_none"
     }
+  ],
+  [
+    "2026-07-20-component-first-v3",
+    {
+      validationUnit: "topic_root_post",
+      responseNamespace: "post-validation-component-first-v3",
+      responseMode: "component_first_domain_none"
+    }
   ]
 ]);
 const ALLOWED_DOMAINS = new Set(["content", "performance", "requirements_access"]);
