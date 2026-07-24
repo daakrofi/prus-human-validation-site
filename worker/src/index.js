@@ -41,6 +41,14 @@ const SAMPLE_PROFILES = new Map([
       responseNamespace: "post-validation-component-first-v3",
       responseMode: "component_first_domain_none"
     }
+  ],
+  [
+    "2026-07-24-sentence-component-first-v1",
+    {
+      validationUnit: "sentence",
+      responseNamespace: "sentence-validation-component-first-v1",
+      responseMode: "component_first_information_request"
+    }
   ]
 ]);
 const ALLOWED_DOMAINS = new Set(["content", "performance", "requirements_access"]);
@@ -136,16 +144,20 @@ export function validatePayload(payload) {
   session.validation_unit = sampleProfile.validationUnit;
 
   let answered = 0;
-  const postIds = new Set();
+  const unitIds = new Set();
   for (const response of session.responses) {
     if (!response || typeof response !== "object") {
       throw new HttpError(400, "Invalid response record");
     }
-    const postId = requiredString(response.post_id, "post id", 300);
-    if (postIds.has(postId)) {
-      throw new HttpError(400, "Post IDs must be unique");
+    const unitId = requiredString(
+      sampleProfile.validationUnit === "sentence" ? response.sentence_id : response.post_id,
+      `${sampleProfile.validationUnit} id`,
+      300
+    );
+    if (unitIds.has(unitId)) {
+      throw new HttpError(400, "Validation unit IDs must be unique");
     }
-    postIds.add(postId);
+    unitIds.add(unitId);
     if (!Array.isArray(response.human_domains)) {
       throw new HttpError(400, "Human product topic domains must be an array");
     }
@@ -154,7 +166,11 @@ export function validatePayload(payload) {
       throw new HttpError(400, "Invalid human product topic domains");
     }
 
-    if (["component_first", "component_first_domain_none"].includes(sampleProfile.responseMode)) {
+    if ([
+      "component_first",
+      "component_first_domain_none",
+      "component_first_information_request"
+    ].includes(sampleProfile.responseMode)) {
       if (![null, true, false].includes(response.uncertainty_cue_present)) {
         throw new HttpError(400, "Invalid uncertainty cue value");
       }
@@ -164,7 +180,23 @@ export function validatePayload(payload) {
 
       const cue = response.uncertainty_cue_present;
       const proposition = response.uncertain_proposition_present;
-      const permitsNoDomain = sampleProfile.responseMode === "component_first_domain_none";
+      const permitsNoDomain = [
+        "component_first_domain_none",
+        "component_first_information_request"
+      ].includes(sampleProfile.responseMode);
+      if (sampleProfile.responseMode === "component_first_information_request") {
+        const cueResponseKind = response.cue_response_kind;
+        if (![null, "yes", "information_request", "no"].includes(cueResponseKind)) {
+          throw new HttpError(400, "Invalid uncertainty response kind");
+        }
+        if (
+          (cueResponseKind === "yes" && cue !== true)
+          || (["information_request", "no"].includes(cueResponseKind) && cue !== false)
+          || (cueResponseKind === null && cue !== null)
+        ) {
+          throw new HttpError(400, "Uncertainty response kind and cue value do not match");
+        }
+      }
       if (permitsNoDomain && ![null, true, false].includes(response.no_qualifying_domain)) {
         throw new HttpError(400, "Invalid no-qualifying-domain value");
       }
@@ -211,7 +243,8 @@ export function validatePayload(payload) {
       throw new HttpError(400, "Every completed PRUS response requires at least one product topic domain");
     }
     if (answered !== EXPECTED_SAMPLE_SIZE) {
-      throw new HttpError(400, "A completed session must answer every post");
+      const unitLabel = sampleProfile.validationUnit === "sentence" ? "sentence" : "post";
+      throw new HttpError(400, `A completed session must answer every ${unitLabel}`);
     }
   }
 
@@ -255,8 +288,15 @@ function savedProgress(record) {
   const sampleVersion = String(record?.sample_metadata?.sample_version || "");
   const responseMode = SAMPLE_PROFILES.get(sampleVersion)?.responseMode || "direct_prus";
   const answered = responses.filter((response) => {
-    if (["component_first", "component_first_domain_none"].includes(responseMode)) {
-      const noQualifyingDomain = responseMode === "component_first_domain_none"
+    if ([
+      "component_first",
+      "component_first_domain_none",
+      "component_first_information_request"
+    ].includes(responseMode)) {
+      const noQualifyingDomain = [
+        "component_first_domain_none",
+        "component_first_information_request"
+      ].includes(responseMode)
         && response?.no_qualifying_domain === true;
       return response?.uncertainty_cue_present === false
         || (response?.uncertainty_cue_present === true && response?.uncertain_proposition_present === false)

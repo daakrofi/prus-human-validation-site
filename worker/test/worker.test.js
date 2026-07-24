@@ -72,6 +72,28 @@ function componentV3Payload() {
   return payload;
 }
 
+function sentenceComponentPayload() {
+  const payload = componentV2Payload();
+  payload.sample_metadata = {
+    sample_version: "2026-07-24-sentence-component-first-v1",
+    unit_of_validation: "sentence",
+    annotation_scheme: "sentence_component_first_information_request_v1",
+    target_total: 500
+  };
+  payload.session.validation_unit = "sentence";
+  payload.session.responses = payload.session.responses.map((response, index) => ({
+    sentence_id: `sentence-${index + 1}`,
+    cue_response_kind: null,
+    uncertainty_cue_present: null,
+    uncertain_proposition_present: null,
+    human_domains: [],
+    no_qualifying_domain: null,
+    derived_PRUS: null,
+    answered_at: null
+  }));
+  return payload;
+}
+
 test("validates the expected sample", () => {
   const result = validatePayload(validPayload());
   assert.deepEqual(result, {
@@ -185,6 +207,37 @@ test("component-first v3 routes the sharpened question-test codebook separately"
   assert.equal(payload.session.responses[0].derived_PRUS, true);
   const path = await participantPath(result.email, result.responseNamespace);
   assert.match(path, /^responses\/post-validation-component-first-v3\/[0-9a-f]{2}\/[0-9a-f]{64}\.json$/);
+});
+
+test("sentence component coding preserves the information-request response as a completed negative branch", async () => {
+  const payload = sentenceComponentPayload();
+  payload.session.responses[0].cue_response_kind = "information_request";
+  payload.session.responses[0].uncertainty_cue_present = false;
+  const result = validatePayload(payload);
+  assert.equal(result.answered, 1);
+  assert.equal(result.responseNamespace, "sentence-validation-component-first-v1");
+  assert.equal(payload.session.responses[0].derived_PRUS, false);
+  const path = await participantPath(result.email, result.responseNamespace);
+  assert.match(path, /^responses\/sentence-validation-component-first-v1\/[0-9a-f]{2}\/[0-9a-f]{64}\.json$/);
+});
+
+test("sentence component coding derives PRUS from qualifying uncertainty, proposition, and domain", () => {
+  const payload = sentenceComponentPayload();
+  payload.session.responses[0].cue_response_kind = "yes";
+  payload.session.responses[0].uncertainty_cue_present = true;
+  payload.session.responses[0].uncertain_proposition_present = true;
+  payload.session.responses[0].human_domains = ["content"];
+  payload.session.responses[0].no_qualifying_domain = false;
+  const result = validatePayload(payload);
+  assert.equal(result.answered, 1);
+  assert.equal(payload.session.responses[0].derived_PRUS, true);
+});
+
+test("sentence component coding rejects a mismatched information-request response", () => {
+  const payload = sentenceComponentPayload();
+  payload.session.responses[0].cue_response_kind = "information_request";
+  payload.session.responses[0].uncertainty_cue_present = true;
+  assert.throws(() => validatePayload(payload), /response kind and cue value do not match/);
 });
 
 test("canonicalizes a stale session unit when post-level sample metadata and records are valid", () => {
